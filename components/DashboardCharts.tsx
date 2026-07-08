@@ -374,52 +374,51 @@ export function OrgTreeMap({ metrics }: ChartProps) {
   );
 }
 
-// 11. Scatter Plot (Salary vs Performance Rating)
+// 11. Bar Chart (Average Salary by Performance Rating)
 export function SalaryVsPerformanceScatter({ metrics }: ChartProps) {
-  // Aggregate or map scatter records, capping at 200 random points for visualization density
-  const scatterPoints = metrics.salaryVsPerformance.slice(0, 200);
+  // Group by performance rating
+  const grouped: Record<number, { sum: number; count: number }> = {};
+  
+  metrics.salaryVsPerformance.forEach(item => {
+    const r = Math.round(item.performance);
+    if (!grouped[r]) grouped[r] = { sum: 0, count: 0 };
+    grouped[r].sum += item.salary;
+    grouped[r].count += 1;
+  });
+
+  const data = Object.keys(grouped).map(rating => ({
+    rating: `Rating ${rating}`,
+    avgSalary: Math.round(grouped[Number(rating)].sum / grouped[Number(rating)].count)
+  })).sort((a, b) => a.rating.localeCompare(b.rating));
 
   const formatSalary = (val: any) => {
     return `$${Math.round(val / 1000)}k`;
   };
 
   return (
-    <ChartWrapper title="Salary vs. Performance Rating Correlation">
+    <ChartWrapper title="Average Salary by Performance Rating">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 10, right: 10, bottom: 5, left: -20 }}>
+        <BarChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis 
-            type="number" 
-            dataKey="salary" 
-            name="Salary" 
-            unit="" 
+          <XAxis dataKey="rating" stroke="rgba(255,255,255,0.4)" fontSize={11} />
+          <YAxis 
             tickFormatter={formatSalary} 
             stroke="rgba(255,255,255,0.4)" 
             fontSize={11}
           />
-          <YAxis 
-            type="number" 
-            dataKey="performance" 
-            name="Performance Rating" 
-            domain={[1, 5]} 
-            tickCount={5} 
-            stroke="rgba(255,255,255,0.4)" 
-            fontSize={11}
-          />
           <Tooltip 
-            cursor={{ strokeDasharray: '3 3' }} 
             contentStyle={{ backgroundColor: 'rgba(23, 23, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
             formatter={(value: any, name: any) => {
-              if (name === 'Salary') return [value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }), name];
+              if (name === 'Average Salary') return [value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }), name];
               return [value, name];
             }}
           />
-          <Scatter name="Employees" data={scatterPoints} fill={CHART_COLORS.accent}>
-            {scatterPoints.map((entry, index) => (
+          <Bar dataKey="avgSalary" name="Average Salary" fill={CHART_COLORS.accent} radius={[4, 4, 0, 0]}>
+            {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={CHART_COLORS.palette[index % CHART_COLORS.palette.length]} />
             ))}
-          </Scatter>
-        </ScatterChart>
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
     </ChartWrapper>
   );
